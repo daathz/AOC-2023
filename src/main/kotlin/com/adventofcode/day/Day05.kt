@@ -1,48 +1,42 @@
 package com.adventofcode.day
 
+import com.adventofcode.util.pop
+import kotlin.math.max
 import kotlin.math.min
 
 class Day05(inputFile: String) : DayXX(inputFile) {
     private data class FilterMap(
-        val dest: Long, val source: Long, val range: Long)
+        val dest: Long, val source: Long, val range: Long) {
+        fun passTroughMap(value: Long): Long = value - source + dest
 
-    private data class SeedRange(val start: Long, val end: Long) {
-        fun getRange() = start..end
+        fun getRange(): LongRange = source..<source + dest
     }
 
+    private data class FilterRange(val start: Long, val end: Long)
+
     override fun part1(): Long {
-        val (seeds, filterMaps) = getSeedsAndMaps(input.filter { it.isNotEmpty() })
+        val (seeds, filterMapBlocks) =
+            getSeedsAndMaps(input.filter { it.isNotEmpty() })
 
         var current = seeds
-        filterMaps.forEach { current = goTroughMaps(current, it) }
+        filterMapBlocks.forEach { current = applyListTroughMaps(current, it) }
 
         return current.min()
     }
 
     override fun part2(): Long {
-        val (seeds, filterMaps) = getSeedsAndMaps(input.filter { it.isNotEmpty() })
+        val (seeds, filterMapBlocks) =
+            getSeedsAndMaps(input.filter { it.isNotEmpty() })
+
         val seedRanges = getSeedRanges(seeds)
 
-        var min = Long.MAX_VALUE
-
-        seedRanges.forEach {
-            for (i in it.getRange()) {
-                var temp = i
-
-                filterMaps.forEach {
-                    temp = goTroughMap(temp, it)
-                }
-
-                min = min(temp, min)
-            }
-        }
-
-        return min
+        return getFinalRanges(seedRanges, filterMapBlocks)
+            .minOf { it.start }
     }
 
     private fun getSeedsAndMaps(input: List<String>)
             : Pair<List<Long>, List<List<FilterMap>>> {
-        val filterMaps: MutableList<List<FilterMap>> = ArrayList()
+        val filterMapBlocks: MutableList<List<FilterMap>> = ArrayList()
         var tempMap: ArrayList<FilterMap> = ArrayList()
 
         val seeds = input.first()
@@ -53,7 +47,7 @@ class Day05(inputFile: String) : DayXX(inputFile) {
         input.drop(1).forEach { line ->
             when {
                 line.contains("map:") -> {
-                    if (tempMap.isNotEmpty()) filterMaps.add(tempMap)
+                    if (tempMap.isNotEmpty()) filterMapBlocks.add(tempMap)
                     tempMap = ArrayList()
                 }
                 else -> {
@@ -63,22 +57,22 @@ class Day05(inputFile: String) : DayXX(inputFile) {
             }
         }
 
-        if (tempMap.isNotEmpty()) filterMaps.add(tempMap)
+        if (tempMap.isNotEmpty()) filterMapBlocks.add(tempMap)
 
-        return seeds to filterMaps
+        return seeds to filterMapBlocks
     }
 
-    private fun getSeedRanges(seeds: List<Long>): List<SeedRange> {
-        val result = ArrayList<SeedRange>()
+    private fun getSeedRanges(seeds: List<Long>): List<FilterRange> {
+        val result = ArrayList<FilterRange>()
 
         seeds.chunked(2).forEach {
-            result.add(SeedRange(it[0], it[1]))
+            result.add(FilterRange(it[0], it[0] + it[1]))
         }
 
         return result
     }
 
-    private fun goTroughMaps(
+    private fun applyListTroughMaps(
         start: List<Long>, filterMaps: List<FilterMap>
     ): List<Long> =
         start.map {
@@ -92,21 +86,58 @@ class Day05(inputFile: String) : DayXX(inputFile) {
             new ?: it
         }
 
-    private fun goTroughMap(start: Long, filterMaps: List<FilterMap>): Long {
-        var new: Long? = null
-        for (filterMap in filterMaps) {
-            new = convert(start, filterMap)
-            if (new != null) break
-        }
-
-        return new ?: start
-    }
-
     private fun convert(start: Long, filterMap: FilterMap): Long? {
-        if (start in filterMap.source..<filterMap.source + filterMap.range) {
-            return start - filterMap.source + filterMap.dest
+        if (start in filterMap.getRange()) {
+            return filterMap.passTroughMap(start)
         }
 
         return null
+    }
+
+    private fun getFinalRanges(
+        seedRanges: List<FilterRange>, filterMapBlocks: List<List<FilterMap>>)
+            : List<FilterRange> {
+        var ranges = seedRanges.toMutableList()
+
+        filterMapBlocks.forEach { filterMaps ->
+            val newRange = arrayListOf<FilterRange>()
+            while (ranges.size > 0) {
+                val range = ranges.pop()
+
+                var overlapped = false
+
+                for (filterMap in filterMaps) {
+                    val overlapStart = max(range.start, filterMap.source)
+                    val overlapEnd =
+                        min(range.end, filterMap.source + filterMap.range)
+
+                    if (overlapStart < overlapEnd) {
+                        newRange.add(
+                            FilterRange(
+                                filterMap.passTroughMap(overlapStart),
+                                filterMap.passTroughMap(overlapEnd)
+                            )
+                        )
+
+                        if (overlapStart > range.start) {
+                            ranges.add(FilterRange(range.start, overlapStart))
+                        }
+                        if (range.end > overlapEnd) {
+                            ranges.add(FilterRange(overlapEnd, range.end))
+                        }
+
+                        overlapped = true
+                        break
+                    }
+                }
+
+                if (!overlapped) {
+                    newRange.add(range)
+                }
+            }
+            ranges = newRange
+        }
+
+        return ranges
     }
 }
