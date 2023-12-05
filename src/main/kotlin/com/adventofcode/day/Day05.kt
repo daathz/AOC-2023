@@ -51,27 +51,28 @@ class Day05(inputFile: String) : DayXX(inputFile) {
             .map { it.toLong() }
 
         input.drop(1).forEach { line ->
-            if (line.contains("map:")) {
-                if (tempMap.isNotEmpty()) filterMaps.add(tempMap)
-                tempMap = ArrayList()
-            } else  {
-                val map = line.split(" ").map { it.toLong() }
-                tempMap.add(FilterMap(map[0], map[1], map[2]))
+            when {
+                line.contains("map:") -> {
+                    if (tempMap.isNotEmpty()) filterMaps.add(tempMap)
+                    tempMap = ArrayList()
+                }
+                else -> {
+                    val map = line.split(" ").map { it.toLong() }
+                    tempMap.add(FilterMap(map[0], map[1], map[2]))
+                }
             }
         }
 
         if (tempMap.isNotEmpty()) filterMaps.add(tempMap)
 
-        return Pair(seeds, filterMaps)
+        return seeds to filterMaps
     }
 
     private fun getSeedRanges(seeds: List<Long>): List<SeedRange> {
         val result = ArrayList<SeedRange>()
 
-        seeds.forEachIndexed { index, l ->
-            if (index % 2 == 0) {
-                result.add(SeedRange(l, l + seeds[index + 1] - 1))
-            }
+        seeds.chunked(2).forEach {
+            result.add(SeedRange(it[0], it[1]))
         }
 
         return result
