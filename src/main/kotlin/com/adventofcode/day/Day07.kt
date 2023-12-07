@@ -6,14 +6,14 @@ class Day07(inputFile: String): DayXX(inputFile) {
             val distinct = hand.map { it }.distinct()
 
             return when (distinct.size) {
-                1 -> 14
+                1 -> 7
                 2 -> {
                     var typeA = 0
                     var typeB = 0
                     hand.forEach {
                         if (it == distinct[0]) typeA++ else typeB++
                     }
-                    return if (typeA == 4 || typeB == 4) 12 else 10
+                    return if (typeA == 4 || typeB == 4) 6 else 5
                 }
                 3 -> {
                     var typeA = 0
@@ -26,68 +26,81 @@ class Day07(inputFile: String): DayXX(inputFile) {
                             else -> typeC++
                         }
                     }
-                    return if (typeA == 3 || typeB == 3 || typeC == 3) 8 else 6
+                    return if (typeA == 3 || typeB == 3 || typeC == 3) 4 else 3
                 }
-                4 -> 4
-                5 -> 2
+                4 -> 2
+                5 -> 1
                 else -> 0
             }
         }
         fun getRankJoker(): Int {
             val jCount = hand.filter { it == 'J' }.length
-            // QQQQJ
-            if (this.getRank() == 12 && jCount == 1) return 14
-            // JJJJQ
-            if (this.getRank() == 12 && jCount == 4) return 14
-            // QQQJJ
-            if (this.getRank() == 10 && jCount == 2) return 14
-            // JJJQQ
-            if (this.getRank() == 10 && jCount == 3) return 14
-            // QQQJA
-            if (this.getRank() == 8 && jCount == 1) return 12
-            // JJJQA
-            if (this.getRank() == 8 && jCount == 3) return 12
-            // QQAJJ
-            if (this.getRank() == 6 && jCount == 2) return 12
-            // QQAAJ
-            if (this.getRank() == 6 && jCount == 1) return 10
-            // QQABJ
-            if (this.getRank() == 4 && jCount == 1) return 8
-            // JJABQ
-            if (this.getRank() == 4 && jCount == 2) return 8
-            // 1234J
-            if (this.getRank() == 2 && jCount == 1) return 4
 
-            return this.getRank()
+            when (getRank()) {
+                6 -> {
+                    when (jCount) {
+                        1, 4 -> return 7
+                    }
+                }
+
+                5 -> {
+                    when (jCount) {
+                        2, 3 -> return 7
+                    }
+                }
+
+                4 -> {
+                    when (jCount) {
+                        1, 3 -> return 6
+                    }
+                }
+
+                3 -> {
+                    when (jCount) {
+                        2 -> return 6
+                        1 -> return 5
+                    }
+                }
+
+                2 -> {
+                    when (jCount) {
+                        1, 2 -> return 4
+                    }
+                }
+
+                1 -> {
+                    if (jCount == 1) return 2
+                }
+            }
+
+            return getRank()
         }
     }
     override fun part1(): Long = input
         .map { it.split(" ") }
         .map { Hand(it[0], it[1].toLong()) }
-        .map { it to it.getRank() }
         .sortedWith(handComparator)
-        .mapIndexed { index, pair ->
-            (index + 1) * pair.first.bid
+        .mapIndexed { index, hand ->
+            (index + 1) * hand.bid
         }
         .sum()
 
     override fun part2() = input
         .map { it.split(" ") }
         .map { Hand(it[0], it[1].toLong()) }
-        .map { it to it.getRankJoker() }
         .sortedWith(jokerComparator)
-        .mapIndexed { index, pair ->
-            (index + 1) * pair.first.bid
+        .mapIndexed { index, hand ->
+            (index + 1) * hand.bid
         }
         .sum()
 
-    private val handComparator = object: Comparator<Pair<Hand, Int>> {
-        override fun compare(h1: Pair<Hand, Int>, h2: Pair<Hand, Int>): Int {
-            if (h1.second > h2.second)  return 1
-            else if (h1.second < h2.second) return -1
+    private val handComparator = object: Comparator<Hand> {
+        override fun compare(h1: Hand, h2: Hand): Int {
+            if (h1.getRank() > h2.getRank())  return 1
+            else if (h1.getRank() < h2.getRank()) return -1
             else {
-                val h1c = replaceCharsWithComparable(h1.first.hand)
-                val h2c = replaceCharsWithComparable(h2.first.hand)
+                val h1c = replaceCharsWithComparableOnes(h1.hand)
+                val h2c = replaceCharsWithComparableOnes(h2.hand)
 
                 for (index in 0..5) {
                     val firstIndex = h1c[index]
@@ -103,13 +116,13 @@ class Day07(inputFile: String): DayXX(inputFile) {
         }
     }
 
-    private val jokerComparator = object: Comparator<Pair<Hand, Int>> {
-        override fun compare(h1: Pair<Hand, Int>, h2: Pair<Hand, Int>): Int {
-            if (h1.second > h2.second)  return 1
-            else if (h1.second < h2.second) return -1
+    private val jokerComparator = object: Comparator<Hand> {
+        override fun compare(h1: Hand, h2: Hand): Int {
+            if (h1.getRankJoker() > h2.getRankJoker())  return 1
+            else if (h1.getRankJoker() < h2.getRankJoker()) return -1
             else {
-                val h1c = replaceCharsWithComparable(h1.first.hand, true)
-                val h2c = replaceCharsWithComparable(h2.first.hand, true)
+                val h1c = replaceCharsWithComparableOnes(h1.hand, true)
+                val h2c = replaceCharsWithComparableOnes(h2.hand, true)
 
                 for (index in 0..5) {
                     val firstIndex = h1c[index]
@@ -125,9 +138,9 @@ class Day07(inputFile: String): DayXX(inputFile) {
         }
     }
 
-    private fun replaceCharsWithComparable(
-        input: String, joker: Boolean = false): String {
-        val result = input
+    private fun replaceCharsWithComparableOnes(
+        hand: String, joker: Boolean = false): String {
+        val result = hand
             .replace("T", "B")
             .replace("Q", "D")
             .replace("K", "E")
