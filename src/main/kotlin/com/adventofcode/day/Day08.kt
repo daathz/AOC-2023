@@ -3,14 +3,19 @@ package com.adventofcode.day
 import com.adventofcode.util.lcm
 
 class Day08(inputFile: String): DayXX(inputFile) {
-    private data class Node(val node: String, val left: String, val right: String)
+
+    private data class Node(
+        val start: String,
+        val left: String,
+        val right: String
+    )
 
     override fun part1(): Long {
         val instructions = input.first()
         val network = getNetwork(input.drop(2))
 
         return stepsToDestination(
-            network.first { it.node == "AAA" },
+            network.first { it.start == "AAA" },
             network,
             instructions,
             stopCondition = { it == "ZZZ" })
@@ -20,11 +25,11 @@ class Day08(inputFile: String): DayXX(inputFile) {
         val instructions = input.first()
         val network = getNetwork(input.drop(2))
 
-        val currentNodes = network.filter { it.node[2] == 'A' }
+        val startNodes = network.filter { it.start.last() == 'A' }
 
-        return currentNodes.map {
-            stepsToDestination(it, network, instructions,
-                stopCondition = { it[2] == 'Z' })
+        return startNodes.map { node ->
+            stepsToDestination(node, network, instructions,
+                stopCondition = { it.last() == 'Z' })
         }.lcm()
     }
 
@@ -49,20 +54,17 @@ class Day08(inputFile: String): DayXX(inputFile) {
             val instruction =
                 instructions[(steps % instructions.length).toInt()]
 
-            steps++
-            val currentString = if (instruction == 'L')
-                current.left else
-                current.right
+            val currentString = when (instruction) {
+                'L' -> current.left
+                else -> current.right
+            }
 
+            steps++
             if (stopCondition(currentString)) break
 
-            current = network.first { it.node == currentString }
+            current = network.first { it.start == currentString }
         }
 
         return steps
     }
-}
-
-fun main() {
-    Day08("day08").solve()
 }
