@@ -11,8 +11,8 @@ class Day09(inputFile: String): DayXX(inputFile) {
 
     private fun getNextHistory(history: List<Long>): Long {
         var lastValue = 0L
-        var current = history.toMutableList()
         var temp = mutableListOf<Long>()
+        var current = history
 
         while (true) {
             for (i in 1..<current.size) {
@@ -22,7 +22,7 @@ class Day09(inputFile: String): DayXX(inputFile) {
 
             lastValue += temp.last()
 
-            if (temp.filter { it == 0L }.size == current.size - 1) break
+            if (temp.all { it == 0L }) break
             current = temp
             temp = mutableListOf()
         }
@@ -32,8 +32,8 @@ class Day09(inputFile: String): DayXX(inputFile) {
 
     private fun getPreviousHistory(history: List<Long>): Long {
         val firstValues = mutableListOf<Long>()
-        var current = history.toMutableList()
         var temp = mutableListOf<Long>()
+        var current = history
 
         while (true) {
             for (i in 1..<current.size) {
@@ -43,11 +43,11 @@ class Day09(inputFile: String): DayXX(inputFile) {
 
             firstValues.add(temp.first())
 
-            if (temp.filter { it == 0L }.size == current.size - 1) break
+            if (temp.all { it == 0L }) break
             current = temp
             temp = mutableListOf()
         }
 
-        return firstValues.reversed().reduce { acc, l ->  (acc - l) * -1 }
+        return firstValues.reversed().reduce { acc, l ->  l - acc }
     }
 }
